@@ -26,14 +26,15 @@ knowledge0 = And(
 )
 
 # Puzzle 1
+# TODO: Fix logic. A_statement is wrong.
 # A says "We are both knaves."
 # B says nothing.
-a_statement = And(AKnave, AKnight)
+a_statement = And(AKnave, BKnave)
 knowledge1 = And(
     And(Or(AKnight, AKnave), Not(And(AKnight, AKnave))),  # A/B are Knights XOR Knaves
     And(Or(BKnight, BKnave), Not(And(BKnight, BKnave))),
     Implication(AKnave, Not(a_statement)),  # If A is a knave, don't trust what they say.
-    Implication(AKnight, a_statement)
+    Implication(AKnight, a_statement) # if A knight, trust em.
 )
 
 # Puzzle 2
@@ -53,6 +54,7 @@ knowledge2 = And(
 # Puzzle 3
 # A says either "I am a knight." or "I am a knave.", but you don't know which.
 # B says "A said 'I am a knave'."
+# TODO: check implication
 # B says "C is a knave."
 # C says "A is a knight."
 a_statement = Or(AKnight, AKnave)
@@ -69,7 +71,7 @@ knowledge3 = And(
     Implication(BKnave, Not(b_statement)),  # If B is a knave, don't trust what they say.
     Implication(BKnight, b_statement),
 
-    Implication(CKnave, Not(c_statement)),  # If B is a knave, don't trust what they say.
+    Implication(CKnave, Not(c_statement)),  # If C is a knave, don't trust what they say.
     Implication(CKnight, c_statement)
 )
 
@@ -85,7 +87,7 @@ def main():
     for puzzle, knowledge in puzzles:
         print(puzzle)
         if len(knowledge.conjuncts) == 0:
-            print("    Not yet implemented.")
+            print("Not yet implemented.")
         else:
             for symbol in symbols:
                 if model_check(knowledge, symbol):
