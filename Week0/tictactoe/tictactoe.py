@@ -157,8 +157,8 @@ def min_value(board, curr_min):
     if terminal(board):
         return utility(board)
     for action in actions(board):
-        if v > curr_min:
-            v = min(v, max_value(result(board, action)))
+        # if v > curr_min:
+        v = min(v, max_value(result(board, action), curr_min))
     return v
 
 
@@ -167,6 +167,6 @@ def max_value(board, curr_max):
     if terminal(board):
         return utility(board)
     for action in actions(board):
-        if v < curr_max:  # may not work!
-            v = max(v, min_value(result(board, action)))
+        # if v < curr_max:  # may not work!
+        v = max(v, min_value(result(board, action), curr_max))
     return v
