@@ -58,8 +58,9 @@ knowledge2 = And(
 # B says "C is a knave."
 # C says "A is a knight."
 a_statement = Or(AKnight, AKnave)
-b_statement = And(CKnave, Implication(a_statement, AKnave))
+b_statement = And(a_statement,(And(CKnave, Implication(a_statement, AKnave))))
 c_statement = AKnight
+
 knowledge3 = And(
     And(Or(AKnight, AKnave), Not(And(AKnight, AKnave))),  # A/B/C are Knights XOR Knaves
     And(Or(BKnight, BKnave), Not(And(BKnight, BKnave))),
