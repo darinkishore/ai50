@@ -222,12 +222,10 @@ class MinesweeperAI():
 
         # 2) mark cell safe
         self.mark_safe(cell)
-        # for sent in self.knowledge:
-        # sent.mark_safe(cell)
 
         # 3) Add new sentence based on value of cell and count.
         neighbors = self.mystery_neighbors(cell)
-        if len(neighbors) != 0:
+        if neighbors:
             sent = Sentence(neighbors, count)
             self.knowledge.append(sent)
 
@@ -237,13 +235,13 @@ class MinesweeperAI():
 
         # 4) mark safes/mines
         for sentence in self.knowledge:
-            if len(sentence.cells) == sentence.count:  # TODO: can sent.cell == 0? should check?
+            if len(sentence.cells) == sentence.count:  # mark mines
                 while sentence.cells:
                     i = sentence.cells.pop()
                     self.mines.add(i)
                     sentence.mark_mine(i)
                     sentence.count -= 1
-            elif sentence.count == 0:
+            elif sentence.count == 0:  # mark safes
                 while sentence.cells:
                     i = sentence.cells.pop()
                     self.safes.add(i)
@@ -274,30 +272,35 @@ class MinesweeperAI():
             2) are not known to be mines
         @ Author: Darin Kishore
         """
+        # if there is nothing to choose that would not blow you up and you haven't
+        # already chosen, return None.
         count = 0
-        while count <= len(self.mines) + len(self.moves_made):
+        while count < self.height * self.width:
             cell = random.randint(0, self.height - 1), random.randint(0, self.width - 1)
-            # Kinda imprecise way of counting if it's been too long, but it'll do.
             if cell not in self.mines and cell not in self.moves_made:
                 return cell
             count += 1
         return None
-
     # Helper functions below
 
     # @ Author: Darin Kishore
     def trim_the_fat(self):
-        if len(self.knowledge) > 2:
+        if len(self.knowledge) >= 2:
+            # the_fat = every combination of sentences we know
             the_fat = list(itertools.combinations(self.knowledge, 2))
-            for sentence_pair in the_fat:
+            for sentence_pair in the_fat:  # sent_pair is tuple (a,b)
                 refactored_sentence = self.refactor(sentence_pair[0], sentence_pair[1])
                 if refactored_sentence is not None and refactored_sentence.cells:
-                    self.knowledge.remove(sentence_pair[0])
-                    self.knowledge.remove(sentence_pair[1])
+                    # self.knowledge.remove(sentence_pair[0])  # TODO: double check that we should not remove
+                    # self.knowledge.remove(sentence_pair[1])
                     self.knowledge.append(refactored_sentence)
 
-    # @ Author: Darin Kishore
     def refactor(self, sentence_1: Sentence, sentence_2: Sentence):
+        """
+        @ Author: Darin Kishore
+        combines two sentences to make a shorter sentence.
+        :rtype: Sentence
+        """
         new_sent = None
         if sentence_1.cells < sentence_2.cells:  # sent_1 is subset
             new_sent = Sentence(sentence_2.cells - sentence_1.cells,
@@ -306,16 +309,20 @@ class MinesweeperAI():
             new_sent = Sentence(sentence_2.cells - sentence_1.cells,
                                 sentence_2.count - sentence_1.count)
         return new_sent
-        # else do nothing?
 
     # @ Author: Darin Kishore
-    def mystery_neighbors(self, cell):  # finds the currently unknown neighbors of any given cell
+    def mystery_neighbors(self, cell):
+        """
+        returns neighbors not known to be safe or mines.
+        :param cell:
+        :return: set() of neighboring cells
+        """
         neighbors = set()
-        for i in range(-1, 1):
-            for j in range(-1, 1):
-                temp_cell = (cell[0] + i, cell[1] + j)
-                if (temp_cell[0] >= 0 and temp_cell[1] >= 0
-                        and temp_cell[0] + i < self.height and temp_cell[1] + j < self.width):
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                temp_cell = (i, j)
+                if 0 <= i < self.height and 0 <= j < self.width:
                     if not (self.is_safe(temp_cell) or self.is_mine(temp_cell)):
                         neighbors.add(temp_cell)
+        neighbors.discard(cell)
         return neighbors
