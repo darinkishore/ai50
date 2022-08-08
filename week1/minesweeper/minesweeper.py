@@ -224,29 +224,36 @@ class MinesweeperAI():
         self.mark_safe(cell)
 
         # 3) Add new sentence based on value of cell and count.
-        neighbors = self.mystery_neighbors(cell)
-        if neighbors:
-            sent = Sentence(neighbors, count)
-            self.knowledge.append(sent)
-
-        # 3.5) after any change to knowledge base,
-        # we should see if any new inferences can be made
-        self.trim_the_fat()
+        neighbors = set()
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                temp_cell = (i, j)
+                if 0 <= i < self.height and 0 <= j < self.width:
+                    if not (self.is_safe(temp_cell) or self.is_mine(temp_cell)):
+                        neighbors.add(temp_cell)
+                    if self.is_mine(temp_cell):
+                        count -= 1
+        neighbors.discard(cell)
+        sent = Sentence(neighbors, count)
+        self.knowledge.append(sent)
 
         # 4) mark safes/mines
         for sentence in self.knowledge:
-            if len(sentence.cells) == sentence.count:  # mark mines
-                while sentence.cells:
-                    i = sentence.cells.pop()
-                    self.mines.add(i)
-                    sentence.mark_mine(i)
-                    sentence.count -= 1
-            elif sentence.count == 0:  # mark safes
-                while sentence.cells:
-                    i = sentence.cells.pop()
-                    self.safes.add(i)
-                    sentence.mark_safe(i)
-            if sentence.count == 0:
+            if sentence.known_mines():  # mark mines
+                for mine in sentence.known_mines():
+                    self.mines.add(mine)
+            elif sentence.known_safes():  # mark safes
+                for safe in sentence.known_safes():
+                    self.safes.add(safe)
+
+            for mine in self.mines:
+                if mine in sentence.cells:
+                    sentence.mark_mine(mine)
+            for safe in self.safes:
+                if safe in sentence.cells:
+                    sentence.mark_safe(safe)
+
+            if sentence.count <= 0 and len(sentence.cells) == 0:
                 self.knowledge.remove(sentence)
 
         # 5) after change to knowledge, see if any new inferences can be made
@@ -272,8 +279,6 @@ class MinesweeperAI():
             2) are not known to be mines
         @ Author: Darin Kishore
         """
-        # if there is nothing to choose that would not blow you up and you haven't
-        # already chosen, return None.
         count = 0
         while count < self.height * self.width:
             cell = random.randint(0, self.height - 1), random.randint(0, self.width - 1)
@@ -291,8 +296,8 @@ class MinesweeperAI():
             for sentence_pair in the_fat:  # sent_pair is tuple (a,b)
                 refactored_sentence = self.refactor(sentence_pair[0], sentence_pair[1])
                 if refactored_sentence is not None and refactored_sentence.cells:
-                    # self.knowledge.remove(sentence_pair[0])  # TODO: double check that we should not remove
-                    # self.knowledge.remove(sentence_pair[1])
+                    self.knowledge.remove(sentence_pair[0])  # TODO: double check that we should not remove
+                    self.knowledge.remove(sentence_pair[1])
                     self.knowledge.append(refactored_sentence)
 
     def refactor(self, sentence_1: Sentence, sentence_2: Sentence):
@@ -302,27 +307,10 @@ class MinesweeperAI():
         :rtype: Sentence
         """
         new_sent = None
-        if sentence_1.cells < sentence_2.cells:  # sent_1 is subset
+        if sentence_1.cells <= sentence_2.cells:  # sent_1 is subset
             new_sent = Sentence(sentence_2.cells - sentence_1.cells,
                                 sentence_2.count - sentence_1.count)
         elif sentence_1.cells > sentence_2.cells:  # sent_2 is subset
             new_sent = Sentence(sentence_2.cells - sentence_1.cells,
                                 sentence_2.count - sentence_1.count)
         return new_sent
-
-    # @ Author: Darin Kishore
-    def mystery_neighbors(self, cell):
-        """
-        returns neighbors not known to be safe or mines.
-        :param cell:
-        :return: set() of neighboring cells
-        """
-        neighbors = set()
-        for i in range(cell[0] - 1, cell[0] + 2):
-            for j in range(cell[1] - 1, cell[1] + 2):
-                temp_cell = (i, j)
-                if 0 <= i < self.height and 0 <= j < self.width:
-                    if not (self.is_safe(temp_cell) or self.is_mine(temp_cell)):
-                        neighbors.add(temp_cell)
-        neighbors.discard(cell)
-        return neighbors
